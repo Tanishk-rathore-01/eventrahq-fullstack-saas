@@ -1,128 +1,28 @@
-# EventraHQ Architecture
+# EventraHQ architecture
 
-## System overview
+## Trust boundaries
 
-```txt
-React Frontend
-  ↓
-Vite SPA
-  ↓
-Node.js + Express API
-  ↓
-Auth Middleware + RBAC
-  ↓
-Supabase PostgreSQL
-  ↓
-Events, Users, Registrations, Audit Logs
+- The browser holds a short-lived Supabase session and publishable key.
+- Express verifies the session and loads the application profile plus memberships.
+- User-scoped operations retain the caller JWT so PostgreSQL RLS independently enforces isolation.
+- The service-role client is limited to webhooks, atomic RPCs, signed uploads, jobs, administration, and seeding.
 
-Optional:
-Node.js API
-  ↓
-Gemini/OpenAI
-  ↓
-AI Event Strategy Brief
-```
+## Consistency model
 
-## Core modules
+- `reserve_event_seat` locks the event before counting confirmed and unexpired pending registrations.
+- Paid reservations hold capacity for 15 minutes.
+- `confirm_payment` locks payment and registration rows, verifies checkout ownership, and supports webhook replay.
+- `check_in_ticket` locks a confirmed registration and reports duplicate scans.
+- Realtime is a presentation signal; PostgreSQL remains the source of truth.
 
-### 1. Authentication
+## Background work
 
-- User registration
-- User login
-- Password hashing
-- JWT session token
-- Protected `/me` endpoint
+Jobs are stored before returning `202`. The worker claims rows using `FOR UPDATE SKIP LOCKED`, validates Gemini JSON with Zod, records model/latency/prompt version, and retries up to three times. Email dedupe keys prevent repeated delivery.
 
-### 2. Authorization
+## Authorization
 
-Roles:
-
-```txt
-user      -> reserve seats, view tickets
-organizer -> create/manage own events, generate AI brief
-admin     -> manage platform, view analytics, create/check-in events
-```
-
-### 3. Event marketplace
-
-- Public event listing
-- Search
-- Category filter
-- Event cards
-- Seat availability
-
-### 4. Organizer console
-
-- Create event
-- Set capacity, pricing, tags, agenda, category
-- Generate AI strategy brief
-
-### 5. Admin analytics
-
-- User count
-- Event count
-- Registration count
-- Revenue estimation
-- Occupancy rate
-- Check-in rate
-- Category distribution chart
-- Audit logs
-
-## Database model
-
-```txt
-app_users
-  id
-  name
-  email
-  role
-  password_hash
-  created_at
-
- events
-  id
-  title
-  slug
-  category
-  status
-  location
-  city
-  event_date
-  event_time
-  capacity
-  price
-  cover
-  organizer_id
-  description
-  tags
-  agenda
-  created_at
-
-registrations
-  id
-  event_id
-  user_id
-  checked_in
-  created_at
-  checked_in_at
-
-audit_logs
-  id
-  actor_id
-  action
-  payload
-  created_at
-```
-
-## Scalability notes
-
-Current architecture is portfolio-grade with a real hosted PostgreSQL backend. To handle very large traffic, upgrade with:
-
-- Redis cache for event listing
-- Background queue for AI generation
-- CDN for frontend assets
-- Read replicas for analytics-heavy queries
-- Cursor pagination for event lists
-- Database functions for atomic capacity reservation
-- API observability and structured logs
-- Webhooks for async event updates
+- Platform role: `user` or `admin`
+- Organization roles: `owner`, `manager`, `checkin_staff`
+- Attendees require no organization membership
+- Owner/manager can manage events and AI briefs
+- Check-in staff can read attendee lists and validate tickets

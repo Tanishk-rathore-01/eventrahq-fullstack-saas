@@ -1,29 +1,41 @@
 {
   "name": "eventrahq",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "EventraHQ - professional event operations SaaS portfolio project with React, Node.js, Express, and modern UI/UX.",
+  "description": "Multi-tenant event operations SaaS with Supabase, Gemini, Razorpay, Resend, and QR ticketing.",
+  "workspaces": [
+    "packages/*",
+    "backend",
+    "frontend"
+  ],
   "scripts": {
-    "install:all": "npm install --prefix backend && npm install --prefix frontend",
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
-    "start": "npm run start --prefix backend",
-    "build": "npm run build --prefix frontend",
-    "lint": "npm run lint --prefix frontend",
-    "test": "npm run test --prefix backend"
+    "dev": "npm run build -w @eventrahq/contracts && concurrently -n api,web -c cyan,magenta \"npm run dev -w @eventrahq/backend\" \"npm run dev -w @eventrahq/frontend\"",
+    "build": "npm run build -w @eventrahq/contracts && npm run build -w @eventrahq/backend && npm run build -w @eventrahq/frontend",
+    "typecheck": "npm run build -w @eventrahq/contracts && npm run typecheck -w @eventrahq/backend && npm run typecheck -w @eventrahq/frontend",
+    "lint": "npm run lint -w @eventrahq/backend && npm run lint -w @eventrahq/frontend",
+    "test": "npm run build -w @eventrahq/contracts && npm run test -w @eventrahq/backend && npm run test -w @eventrahq/frontend",
+    "test:e2e": "npm run test:e2e -w @eventrahq/frontend",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "start": "npm run start -w @eventrahq/backend",
+    "seed": "npm run seed -w @eventrahq/backend"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "keywords": [
     "React",
-    "Node.js",
-    "Express.js",
-    "JavaScript",
-    "Full Stack",
-    "Event Management",
-    "SaaS",
-    "RBAC",
-    "REST API",
-    "JWT Authentication"
+    "TypeScript",
+    "Express",
+    "Supabase",
+    "PostgreSQL",
+    "RLS",
+    "Gemini",
+    "Razorpay",
+    "SaaS"
   ],
   "devDependencies": {
-    "concurrently": "^9.1.2"
-  }
+    "concurrently": "^9.2.3",
+    "typescript": "5.9.3"
+  },
+  "overrides": {}
 }

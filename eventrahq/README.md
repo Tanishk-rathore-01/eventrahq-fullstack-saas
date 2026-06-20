@@ -1,245 +1,105 @@
-# EventraHQ — Event Operations Cloud
+# EventraHQ
 
-EventraHQ is a professional full-stack event management SaaS project built for portfolio, interview, and ATS impact. It uses React, CSS, HTML, Node.js, Express, Supabase PostgreSQL, JWT authentication, RBAC, admin analytics, and optional Gemini/OpenAI-powered event strategy generation.
+EventraHQ is a multi-tenant event operations SaaS covering the complete workflow from organizer planning to verified attendee check-in. It uses real authentication, row-level data isolation, atomic inventory, test-mode payments, asynchronous jobs, auditable operations, strict TypeScript, automated tests, Docker, CI, and cloud deployment configuration.
 
-## Why this project is stronger than a basic CRUD app
+## Product workflows
 
-This is not a plain event listing website. It includes production-facing patterns:
+- Supabase email/password authentication, verification, recovery, and refreshable sessions
+- Organization workspaces with owner, manager, check-in staff, attendee, and platform-admin authorization
+- Public discovery, event creation, image uploads, and live registration totals
+- Gemini structured event briefs processed by a persistent retryable worker
+- Free registration and Razorpay Test Mode checkout with signature and webhook verification
+- Resend ticket and invitation email jobs
+- Signed QR wallet, camera/manual scanning, and idempotent check-in
+- Organization analytics, platform health, audit activity, rate limits, and structured logs
 
-- Supabase PostgreSQL database with normalized tables
-- JWT authentication with protected routes
-- Role-based access control: user, organizer, admin
-- Event marketplace with search and filtering
-- Event creation workflow for organizers/admins
-- Registration and check-in tracking
-- Admin analytics dashboard
-- Audit logging
-- API rate limiting, Helmet security headers, CORS control, compression
-- Optional Gemini/OpenAI AI event brief generation
-- Responsive 2026-style glass/gradient UI built with custom CSS
-- ATS-ready documentation and resume bullets
+## Architecture
 
-## Tech stack
-
-### Frontend
-
-- React
-- Vite
-- JavaScript
-- HTML
-- CSS
-- React Router
-- Recharts
-- Lucide Icons
-
-### Backend
-
-- Node.js
-- Express.js
-- Supabase PostgreSQL
-- JWT
-- bcryptjs
-- Helmet
-- CORS
-- Express Rate Limit
-- Gemini API optional
-- OpenAI API optional
-
-## Folder structure
-
-```txt
-EventraHQ/
-  backend/
-    supabase/schema.sql
-    src/
-      config/
-      data/
-      middleware/
-      routes/
-      scripts/
-      server.js
-  frontend/
-    src/
-      api/
-      components/
-      context/
-      pages/
-      styles.css
-  docs/
-    ATS_RESUME_BULLETS.md
-    ARCHITECTURE.md
-  .env.example
-  README.md
+```text
+Vercel: React 19 + Vite + TypeScript
+       | Supabase session JWT
+       v
+Render: Express 5 API + persistent job worker
+       | user-scoped client              | service-role client
+       v                                 v
+Supabase Auth + PostgreSQL RLS + Storage + Realtime
+       |                                 |
+       +--> Gemini + Resend              +--> Razorpay Test Mode
 ```
 
-## Setup
+The browser uses only the Supabase publishable key. Service-role, Gemini, Resend, Razorpay, webhook, and ticket-signing secrets stay in the backend environment.
 
-### 1. Install dependencies
+## Repository
+
+```text
+backend/                 Express API, worker, tests, migrations
+frontend/                React application and Playwright smoke test
+packages/contracts/      Shared Zod schemas and TypeScript contracts
+.github/workflows/       CI, secret scan, tests, build, E2E
+render.yaml              Render API deployment
+vercel.json              Vercel frontend deployment
+```
+
+## Local setup
+
+Requirements: Node.js 22+, npm 11+, a Supabase project, and provider test credentials.
+
+1. Install the locked workspace with `npm ci`.
+2. Apply every SQL file in `backend/supabase/migrations` in filename order using the Supabase SQL Editor.
+3. Copy `backend/.env.example` to `backend/.env` and `frontend/.env.example` to `frontend/.env`.
+4. Fill variables using your own Supabase, Gemini, Resend, and Razorpay Test Mode accounts. Never commit `.env`.
+5. Add `http://localhost:5173/dashboard` and `http://localhost:5173/auth/reset` to Supabase Auth redirect URLs.
+
+Optionally seed a complete demo workspace:
+
+```powershell
+$env:DEMO_PASSWORD='choose-a-unique-12-plus-character-password'
+npm run seed
+```
+
+The seed creates non-production users at `admin@eventrahq.demo`, `organizer@eventrahq.demo`, `staff@eventrahq.demo`, and `attendee@eventrahq.demo`, plus free and paid events. The password is never stored in the repository.
+
+Start the application with `npm run dev`.
+
+- Frontend: `http://localhost:5173`
+- API liveness: `http://localhost:5050/api/health/live`
+- API readiness: `http://localhost:5050/api/health/ready`
+
+## Verification
 
 ```bash
-npm run install:all
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run test:e2e
 ```
 
-### 2. Create Supabase database tables
+Backend tests cover shared validation, ticket tampering, Razorpay signatures, webhook signatures, liveness, and structured errors. Database concurrency and provider smoke tests require a configured Supabase/provider environment.
 
-Open your Supabase project.
+## Important API contracts
 
-Go to:
+| Area | Routes |
+| --- | --- |
+| Identity | `GET /api/me` |
+| Workspaces | `GET/POST /api/organizations`, invitations and members |
+| Events | `GET/POST/PATCH /api/events`, organizer lists, signed uploads |
+| AI | `POST /api/ai/event-brief` and `GET /api/ai/jobs/:id` |
+| Checkout | `POST /api/events/:id/checkout` and `POST /api/payments/verify` |
+| Webhooks | `POST /api/webhooks/razorpay` using the untouched raw body |
+| Tickets | `GET /api/tickets` and `POST /api/tickets/check-ins` |
 
-```txt
-Supabase Dashboard -> SQL Editor -> New Query
-```
+## Deployment
 
-Paste and run:
+- Deploy the frontend to Vercel using `vercel.json`.
+- Create the Render Blueprint from `render.yaml` and add backend secrets.
+- Apply migrations before the first production API deployment.
+- Set Vercel's public API/Supabase variables and the Vercel URL in Render's `APP_URL` and `CLIENT_ORIGINS`.
+- Register `https://<render-api>/api/webhooks/razorpay` as the Razorpay Test Mode webhook.
+- Add production redirect URLs to Supabase Auth.
 
-```txt
-backend/supabase/schema.sql
-```
+Razorpay remains in Test Mode: no real settlement or organizer payout flow is implemented. Free-tier sleeping services may delay work; the database-backed queue preserves jobs across restarts.
 
-### 3. Configure backend environment
+## Portfolio résumé bullet
 
-Create:
-
-```txt
-backend/.env
-```
-
-Use this format:
-
-```env
-PORT=5050
-NODE_ENV=development
-JWT_SECRET=make_this_long_random_and_private
-CLIENT_ORIGIN=http://localhost:5173
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX=120
-
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-
-GEMINI_API_KEY=your_gemini_key_optional
-OPENAI_API_KEY=your_openai_key_optional
-```
-
-Important: `SUPABASE_SERVICE_ROLE_KEY` must stay only in `backend/.env`. Never put it in frontend `.env`.
-
-### 4. Configure frontend environment
-
-Create:
-
-```txt
-frontend/.env
-```
-
-Use:
-
-```env
-VITE_API_URL=http://localhost:5050/api
-```
-
-### 5. Seed demo data
-
-```bash
-npm run seed --prefix backend
-```
-
-Demo accounts:
-
-```txt
-admin@eventrahq.com / Admin@12345
-organizer@eventrahq.com / Organizer@12345
-user@eventrahq.com / User@12345
-```
-
-### 6. Run app
-
-```bash
-npm run dev
-```
-
-Frontend:
-
-```txt
-http://localhost:5173
-```
-
-Backend:
-
-```txt
-http://localhost:5050/api/health
-```
-
-## API routes
-
-### Auth
-
-```txt
-POST /api/auth/register
-POST /api/auth/login
-GET  /api/auth/me
-```
-
-### Events
-
-```txt
-GET   /api/events
-GET   /api/events/:id
-POST  /api/events
-PATCH /api/events/:id
-POST  /api/events/:id/register
-POST  /api/events/:id/checkin
-```
-
-### Dashboard
-
-```txt
-GET /api/dashboard
-GET /api/admin/stats
-```
-
-### AI
-
-```txt
-POST /api/ai/event-brief
-```
-
-Gemini is used first if `GEMINI_API_KEY` exists. OpenAI is fallback if `OPENAI_API_KEY` exists. If neither exists, the app uses a deterministic fallback so the UI still works.
-
-## Security notes
-
-This project includes:
-
-- Password hashing with bcryptjs
-- JWT-based auth
-- Backend-only service-role Supabase key
-- Role-based route protection
-- Rate limiting
-- Helmet HTTP security headers
-- CORS origin restriction
-- Server-side permission checks
-- Audit logs for important actions
-
-## Production upgrade path
-
-For real production traffic, add:
-
-- Supabase Auth or dedicated auth provider
-- Refresh tokens and token rotation
-- Edge cache/CDN
-- Queue worker for heavy AI jobs
-- Email verification
-- Payment integration
-- Object storage for event media
-- Monitoring: Sentry, OpenTelemetry, uptime checks
-- Unit/integration/E2E tests in CI
-- Dockerfile and deployment pipeline
-
-## Portfolio positioning
-
-Use this project as:
-
-```txt
-EventraHQ — Full-Stack Event Operations SaaS
-```
-
-Do not pitch it as a college mini-project. Pitch it as a SaaS-style platform with real database design, secure backend APIs, admin analytics, AI-assisted planning, and role-based access control.
+Built a multi-tenant event operations SaaS using React, TypeScript, Express, Supabase PostgreSQL/Auth/RLS/Storage/Realtime, Gemini, Razorpay, and Resend; implemented atomic ticket inventory, signed webhook processing, persistent jobs, role-based workspaces, QR check-in, CI, Docker, and cloud deployment configuration.

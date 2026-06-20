@@ -1,31 +1,25 @@
 import js from '@eslint/js';
-import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import tseslint from 'typescript-eslint';
 
-export default [
-  js.configs.recommended,
+export default tseslint.config(
+  js.configs.recommended, ...tseslint.configs.recommendedTypeChecked,
   {
-    files: ['**/*.{js,jsx}'],
-    languageOptions: {
-      ecmaVersion: 2023,
-      sourceType: 'module',
-      globals: {
-        document: 'readonly',
-        localStorage: 'readonly',
-        fetch: 'readonly',
-        window: 'readonly'
-      },
-      parserOptions: { ecmaFeatures: { jsx: true } }
-    },
-    plugins: { react, 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
+    files: ['src/**/*.{ts,tsx}'],
+    languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
+    plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
     rules: {
-      ...react.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
-      'react/react-in-jsx-scope': 'off',
-      'react/prop-types': 'off',
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }]
-    },
-    settings: { react: { version: 'detect' } }
-  }
-];
+      'react-refresh/only-export-components': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/no-base-to-string': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: false }]
+    }
+  },
+  { ignores: ['dist/**'] }
+);

@@ -1,28 +1,39 @@
 {
-  "name": "eventrahq-frontend",
-  "version": "1.0.0",
-  "type": "module",
+  "name": "@eventrahq/frontend",
+  "version": "2.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint src --ext js,jsx --max-warnings 0"
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "eslint src --max-warnings=0",
+    "test": "vitest run --passWithNoTests",
+    "test:e2e": "playwright test",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "react-router-dom": "latest",
-    "lucide-react": "latest",
-    "recharts": "latest"
+    "@eventrahq/contracts": "2.0.0",
+    "@supabase/supabase-js": "2.108.2",
+    "lucide-react": "0.468.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-router-dom": "^7.18.0",
+    "recharts": "3.7.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "eslint": "latest",
-    "eslint-plugin-react": "latest",
-    "eslint-plugin-react-hooks": "latest",
-    "eslint-plugin-react-refresh": "latest",
-    "@eslint/js": "latest"
+    "@eslint/js": "9.39.2",
+    "@playwright/test": "1.61.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.1",
+    "eslint": "9.39.2",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "eslint-plugin-react-refresh": "0.4.24",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.50.1",
+    "vite": "8.0.16",
+    "vitest": "4.1.0"
   }
 }
