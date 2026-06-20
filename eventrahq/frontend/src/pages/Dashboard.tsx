@@ -24,6 +24,9 @@ export default function Dashboard() {
       setEvents(eventData.events); setAnalytics(analyticsData.analytics);
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Workspace unavailable.'); }
   }
+  useEffect(() => {
+    if (!membership && me?.memberships[0]) setMembership(me.memberships[0]);
+  }, [me, membership]);
   useEffect(() => { void load(); }, [membership?.organizationId]);
   useEffect(() => {
     if (!membership) return;

@@ -48,8 +48,15 @@ export default function EventEditor() {
         agenda: form.agenda.split('\n').map((item) => item.trim()).filter(Boolean),
         status: form.status, coverPath: await uploadCover()
       };
-      const result = await apiClient.createEvent(input);
-      setEventId(result.event.id); setMessage('Event saved. You can now generate an AI operating brief.');
+      if (eventId) {
+        const { organizationId: omittedOrganizationId, ...patch } = input;
+        void omittedOrganizationId;
+        await apiClient.updateEvent(eventId, patch);
+      } else {
+        const result = await apiClient.createEvent(input);
+        setEventId(result.event.id);
+      }
+      setCover(null); setMessage('Event saved. You can now generate an AI operating brief.');
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Event could not be saved.'); }
     finally { setLoading(false); }
   }
