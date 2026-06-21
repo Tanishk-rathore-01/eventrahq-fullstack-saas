@@ -37,7 +37,7 @@
     "SaaS"
   ],
   "devDependencies": {
-    "concurrently": "9.2.3",
+    "concurrently": "10.0.3",
     "typescript": "5.9.3",
     "yaml": "2.9.0"
   }
