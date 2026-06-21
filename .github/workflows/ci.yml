@@ -1,0 +1,88 @@
+name: EventraHQ CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality and security
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan repository for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate migration ordering
+        run: npm run migrations:check
+      - name: Validate workflow syntax
+        run: npm run workflows:check
+      - name: Audit production dependency risk
+        run: npm run audit:ci
+      - name: Type-check workspaces
+        run: npm run typecheck
+      - name: Lint workspaces
+        run: npm run lint
+      - name: Run unit and API tests
+        run: npm test
+      - name: Build production artifacts
+        run: npm run build
+      - name: Upload production build
+        uses: actions/upload-artifact@v4
+        with:
+          name: eventrahq-production-build
+          path: |
+            backend/dist
+            frontend/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  browser:
+    name: Browser acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run Playwright acceptance tests
+        run: npm run test:e2e
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-diagnostics
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
