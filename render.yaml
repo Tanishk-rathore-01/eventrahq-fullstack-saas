@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: eventrahq-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health/ready
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5050
+      - key: APP_URL
+        sync: false
+      - key: CLIENT_ORIGINS
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: EventraHQ <onboarding@resend.dev>
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: TICKET_SECRET
+        generateValue: true
+      - key: JOB_POLL_INTERVAL_MS
+        value: 2000
+      - key: RATE_LIMIT_MAX
+        value: 180
